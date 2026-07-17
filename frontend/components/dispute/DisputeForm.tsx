@@ -89,7 +89,7 @@ const CURRENCIES = ["USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "HKD"];
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface DisputeFormProps {
-  onResult: (input: DisputeInput, result: AnalysisResponse) => void;
+  onResult: (input: DisputeInput, result: AnalysisResponse, formData: DisputeFormData) => void;
   onPendingChange?: (isPending: boolean) => void;
   /** Pre-filled values coming from the CSV uploader */
   prefillValues?: Partial<DisputeFormData>;
@@ -109,7 +109,7 @@ export function DisputeForm({ onResult, onPendingChange, prefillValues }: Disput
     formState: { errors },
   } = useForm<DisputeFormData>({
     resolver: zodResolver(disputeSchema),
-    defaultValues: { currency: "USD" },
+    defaultValues: { currency: "" },
   });
 
   // ── When CSV row changes, inject values into the form ─────────────────────
@@ -131,7 +131,7 @@ export function DisputeForm({ onResult, onPendingChange, prefillValues }: Disput
       dispute_id: data.dispute_id,
       counterparty_code: data.counterparty_code,
       agreement_type: data.agreement_type,
-      currency: data.currency,
+      currency: data.currency || "",
       dispute_amount: data.dispute_amount,
       their_exposure: data.their_exposure ?? data.dispute_amount,
       free_text_comment: data.free_text_comment,
@@ -142,7 +142,7 @@ export function DisputeForm({ onResult, onPendingChange, prefillValues }: Disput
     onPendingChange?.(true);
     mutate(input, {
       onSuccess: (result) => {
-        onResult(input, result);
+        onResult(input, result, data);
         onPendingChange?.(false);
       },
       onError: () => onPendingChange?.(false),

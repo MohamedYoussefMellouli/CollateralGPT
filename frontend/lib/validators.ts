@@ -22,11 +22,12 @@ export const disputeSchema = z.object({
 
   currency: z
     .string()
-    .min(3, "Select a currency")
-    .max(3, "Must be a 3-letter code"),
+    .max(3, "Must be a 3-letter code")
+    .optional()
+    .or(z.literal("")),
 
   dispute_amount: z
-    .number({ invalid_type_error: "Please enter a valid amount" })
+    .number({ error: "Please enter a valid amount" })
     .min(0, "Amount must be 0 or greater"),
 
   free_text_comment: z

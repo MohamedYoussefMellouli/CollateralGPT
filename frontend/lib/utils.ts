@@ -6,12 +6,26 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  // Valider et nettoyer le code de devise
+  const cleanCurrency = currency?.trim().toUpperCase();
+  
+  // Liste des devises ISO 4217 communes
+  const validCurrencies = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'CNY', 'INR', 'BRL'];
+  
+  // Si pas de devise ou devise invalide, utiliser USD par défaut
+  const safeCurrency = cleanCurrency && validCurrencies.includes(cleanCurrency) ? cleanCurrency : 'USD';
+  
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: safeCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch (error) {
+    // Fallback en cas d'erreur : formatage simple avec symbole $
+    return `$${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
 }
 
 export function formatScore(score: number): string {

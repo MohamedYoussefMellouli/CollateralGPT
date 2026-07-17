@@ -1,6 +1,7 @@
 "use client";
 
 import type { AnalysisResponse } from "@/types/dispute";
+import type { DisputeFormData } from "@/lib/validators";
 import { ConfidenceBar } from "./ConfidenceBar";
 import {
   Brain,
@@ -9,12 +10,14 @@ import {
   Tag,
   Lightbulb,
   Sparkles,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AnalysisCardProps {
   response: AnalysisResponse;
   disputeId: string;
+  formData: DisputeFormData | null;
 }
 
 function SectionTitle({
@@ -34,7 +37,81 @@ function SectionTitle({
   );
 }
 
-export function AnalysisCard({ response, disputeId }: AnalysisCardProps) {
+/** Escape a CSV field value (handle semicolons, quotes, newlines) */
+function escapeCsvField(value: string): string {
+  if (value.includes(";") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+export function AnalysisCard({ response, disputeId, formData }: AnalysisCardProps) {
+
+  const handleDownloadCsv = () => {
+    // CSV column headers matching vermeg.csv
+    const headers = [
+      "SNAPSHOT_ID",
+      "DISPUTE_EVENT_ID",
+      "CALL_DATE",
+      "COUNTERPARTY_CODE",
+      "CURRENCY",
+      "AGREEMENT_DESC",
+      "THEIR_EXPOSURE",
+      "DISPUTE_AMOUNT",
+      "DISPUTE_AGE_DAYS",
+      "TOTAL_DISPUTE_AGE",
+      "CALL_STATUS_CODE",
+      "ORIGINAL_COMMENT",
+      "RECONCILIATION_COMMENT",
+      "REASON_CODE",
+    ];
+
+    // Convert call_date from YYYY-MM-DD back to DD/MM/YYYY for CSV compatibility
+    let callDateCsv = "";
+    if (formData?.call_date) {
+      const parts = formData.call_date.split("-");
+      if (parts.length === 3) {
+        callDateCsv = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      } else {
+        callDateCsv = formData.call_date;
+      }
+    }
+
+    // Build the row values from formData + AI predictions
+    const rowValues = [
+      formData?.dispute_id || "",
+      formData?.dispute_event_id || "0",
+      callDateCsv,
+      formData?.counterparty_code || "",
+      formData?.currency || "",
+      formData?.agreement_type || "",
+      String(formData?.their_exposure ?? 0),
+      String(formData?.dispute_amount ?? 0),
+      String(formData?.dispute_age_days ?? 0),
+      String(formData?.total_dispute_age ?? 0),
+      formData?.call_status_code || "",
+      formData?.free_text_comment || "",
+      response.suggested_resolution.replace(/[\r\n]+/g, " "),       // ← Remove newlines so Excel displays it properly
+      response.predicted_reason_code,
+    ];
+
+    // Build CSV content with semicolon separator (matching vermeg.csv format)
+    const csvContent =
+      headers.join(";") + "\n" +
+      rowValues.map((v) => escapeCsvField(String(v))).join(";") + "\n";
+
+    // Trigger browser download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `dispute_${formData?.dispute_id || "export"}_resolved.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <section
       className="space-y-4"
@@ -111,6 +188,19 @@ export function AnalysisCard({ response, disputeId }: AnalysisCardProps) {
           </p>
         </div>
       </div>
+
+      {/* Download CSV Button */}
+      {formData && (
+        <button
+          onClick={handleDownloadCsv}
+          className="w-full flex items-center justify-center gap-3 px-5 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-sm rounded-2xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all duration-200 group"
+          aria-label="Download resolved dispute as CSV"
+        >
+          <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <span>Télécharger le CSV résolu</span>
+        </button>
+      )}
     </section>
   );
 }
+

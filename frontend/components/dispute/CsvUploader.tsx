@@ -34,11 +34,11 @@ function normalise(row: Record<string, string>): CsvRow {
 
 /** Map a CSV row to form values */
 function rowToFormValues(row: CsvRow): Partial<DisputeFormData> {
-  // Currency fallback: CSV currency column is often blank → default USD
-  const currency = row.CURRENCY?.trim() || "USD";
+  // Currency fallback: preserve original if blank
+  const currency = row.CURRENCY?.trim() || "";
 
   // Clamp currency to 3 chars
-  const cur3 = currency.substring(0, 3).toUpperCase() || "USD";
+  const cur3 = currency.substring(0, 3).toUpperCase() || "";
 
   // Agreement type: truncate to 30 chars (Zod max)
   const agreementType = (row.AGREEMENT_DESC || "").substring(0, 30);

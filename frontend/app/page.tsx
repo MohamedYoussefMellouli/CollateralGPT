@@ -47,13 +47,15 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const [result,         setResult]         = useState<AnalysisResponse | null>(null);
   const [submittedInput, setSubmittedInput]  = useState<DisputeInput | null>(null);
+  const [submittedFormData, setSubmittedFormData] = useState<DisputeFormData | null>(null);
   const [isPending,      setIsPending]       = useState(false);
   const [prefillValues,  setPrefillValues]   = useState<Partial<DisputeFormData> | undefined>();
   const [csvInfo,        setCsvInfo]         = useState<{ current: number; total: number } | null>(null);
 
-  const handleResult = (input: DisputeInput, response: AnalysisResponse) => {
+  const handleResult = (input: DisputeInput, response: AnalysisResponse, formData: DisputeFormData) => {
     setSubmittedInput(input);
     setResult(response);
+    setSubmittedFormData(formData);
     setIsPending(false);
   };
 
@@ -72,6 +74,7 @@ export default function DashboardPage() {
     // Clear previous analysis result when navigating to a new dispute
     setResult(null);
     setSubmittedInput(null);
+    setSubmittedFormData(null);
   };
 
   const handleClearCsv = () => {
@@ -79,6 +82,7 @@ export default function DashboardPage() {
     setCsvInfo(null);
     setResult(null);
     setSubmittedInput(null);
+    setSubmittedFormData(null);
   };
 
   return (
@@ -153,7 +157,7 @@ export default function DashboardPage() {
                 <SummaryCard input={submittedInput} />
               </div>
               <div className="animate-fade-in-up" style={{ animationDelay: "60ms" }}>
-                <AnalysisCard response={result} disputeId={submittedInput.dispute_id} />
+              <AnalysisCard response={result} disputeId={submittedInput.dispute_id} formData={submittedFormData} />
               </div>
               <div className="animate-fade-in-up" style={{ animationDelay: "120ms" }}>
                 <SimilarDisputes disputes={result.similar_past_disputes} />
