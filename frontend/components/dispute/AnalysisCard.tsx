@@ -45,6 +45,35 @@ function escapeCsvField(value: string): string {
   return value;
 }
 
+/**
+ * Strip Python-dict / JSON formatting from AI resolution strings.
+ * Converts:  {'Action': 'Vérifier...', 'Justification': '...'}
+ * Into:      Action : Vérifier... | Justification : ...
+ */
+function cleanResolution(raw: string): string {
+  const trimmed = raw.trim();
+
+  // Detect a dict-like string: starts with { and ends with }
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+    try {
+      // Try JSON parse first (double-quoted keys)
+      const parsed = JSON.parse(trimmed) as Record<string, string>;
+      return Object.entries(parsed)
+        .map(([k, v]) => `${k} : ${v}`)
+        .join(" | ");
+    } catch {
+      // Fallback: strip braces/quotes and format as plain text
+      return trimmed
+        .slice(1, -1)                                 // remove { }
+        .replace(/'([^']+)'\s*:\s*'([^']*)'/g, "$1 : $2")  // 'Key': 'Value'
+        .replace(/,\s*/g, " | ")                      // commas → pipe
+        .trim();
+    }
+  }
+
+  return trimmed;
+}
+
 export function AnalysisCard({ response, disputeId, formData }: AnalysisCardProps) {
 
   const handleDownloadCsv = () => {
@@ -91,7 +120,7 @@ export function AnalysisCard({ response, disputeId, formData }: AnalysisCardProp
       String(formData?.total_dispute_age ?? 0),
       formData?.call_status_code || "",
       formData?.free_text_comment || "",
-      response.suggested_resolution.replace(/[\r\n]+/g, " "),       // ← Remove newlines so Excel displays it properly
+      cleanResolution(response.suggested_resolution).replace(/[\r\n]+/g, " "),
       response.predicted_reason_code,
     ];
 
@@ -101,7 +130,9 @@ export function AnalysisCard({ response, disputeId, formData }: AnalysisCardProp
       rowValues.map((v) => escapeCsvField(String(v))).join(";") + "\n";
 
     // Trigger browser download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    // Prepend UTF-8 BOM (\uFEFF) so Excel opens accented characters correctly
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;

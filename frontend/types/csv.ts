@@ -24,6 +24,24 @@ export interface ParsedCsvResult {
   unresolved: CsvRow[];
   /** Rows with RECONCILIATION_COMMENT filled → used as history */
   resolved: CsvRow[];
+  /** All rows in original order */
+  allRows: CsvRow[];
   /** Total row count (excl. header) */
   total: number;
 }
+
+/**
+ * Stores the AI result for a single resolved dispute.
+ */
+export interface ResolvedEntry {
+  /** Cleaned suggested resolution text */
+  resolution: string;
+  /** Predicted reason code from the AI */
+  reasonCode: string;
+}
+
+/**
+ * Maps SNAPSHOT_ID → AI result (resolution + reason code).
+ * Built progressively as the user analyzes disputes.
+ */
+export type ResolvedMap = Map<string, ResolvedEntry>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { DisputeForm } from "@/components/dispute/DisputeForm";
 import { CsvUploader } from "@/components/dispute/CsvUploader";
 import { SummaryCard } from "@/components/dispute/SummaryCard";
@@ -10,6 +10,7 @@ import { ResultsSkeleton } from "@/components/dispute/ResultsSkeleton";
 import { EmptyState } from "@/components/dispute/EmptyState";
 import type { AnalysisResponse, DisputeInput } from "@/types/dispute";
 import type { DisputeFormData } from "@/lib/validators";
+import type { CsvRow, ResolvedMap, ResolvedEntry } from "@/types/csv";
 import { Zap, Shield, TrendingUp, Clock, AlertTriangle, FileSpreadsheet } from "lucide-react";
 import { useTranslation } from "@/components/Providers";
 
@@ -52,11 +53,26 @@ export default function DashboardPage() {
   const [prefillValues,  setPrefillValues]   = useState<Partial<DisputeFormData> | undefined>();
   const [csvInfo,        setCsvInfo]         = useState<{ current: number; total: number } | null>(null);
 
+  // Tracks AI resolutions by SNAPSHOT_ID for the bulk CSV export
+  const resolvedMapRef = useRef<ResolvedMap>(new Map());
+  const [resolvedMap,   setResolvedMap]      = useState<ResolvedMap>(new Map());
+
   const handleResult = (input: DisputeInput, response: AnalysisResponse, formData: DisputeFormData) => {
     setSubmittedInput(input);
     setResult(response);
     setSubmittedFormData(formData);
     setIsPending(false);
+
+    // Register this resolution in the map so the bulk export can use it
+    if (formData.dispute_id) {
+      const entry: ResolvedEntry = {
+        resolution: response.suggested_resolution.trim().replace(/[\r\n]+/g, " "),
+        reasonCode: response.predicted_reason_code,
+      };
+      resolvedMapRef.current.set(formData.dispute_id, entry);
+      // Trigger re-render by spreading into a new Map
+      setResolvedMap(new Map(resolvedMapRef.current));
+    }
   };
 
   const handlePending = (pending: boolean) => {
@@ -83,6 +99,16 @@ export default function DashboardPage() {
     setResult(null);
     setSubmittedInput(null);
     setSubmittedFormData(null);
+    // Reset the resolved map when a new file is loaded
+    resolvedMapRef.current = new Map();
+    setResolvedMap(new Map());
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleAllRowsReady = (_rows: CsvRow[]) => {
+    // Reset map whenever a new file is imported
+    resolvedMapRef.current = new Map();
+    setResolvedMap(new Map());
   };
 
   return (
@@ -133,6 +159,8 @@ export default function DashboardPage() {
               <CsvUploader
                 onDisputeSelect={handleDisputeSelect}
                 onClear={handleClearCsv}
+                onAllRowsReady={handleAllRowsReady}
+                resolvedMap={resolvedMap}
               />
             </div>
 
