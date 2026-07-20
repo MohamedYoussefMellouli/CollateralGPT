@@ -123,6 +123,19 @@ export const translations = {
     statusOpen: "OPEN",
     age: "Age",
     autoRetrieved: "auto-retrieved",
+
+    // History page
+    historyTitle: "Generated CSV History",
+    historySubtitle: "All CSV files exported from dispute analyses",
+    historyEmpty: "No CSV generated yet",
+    historyEmptyHint: "Analyze disputes and download a CSV to see it appear here.",
+    historyDate: "Date",
+    historyFile: "File name",
+    historyRows: "Rows",
+    historyResolved: "AI resolved",
+    historyDownload: "Download",
+    historyDelete: "Delete",
+    historyClear: "Clear history",
   },
   fr: {
     // Header
@@ -248,6 +261,19 @@ export const translations = {
     statusOpen: "OUVERT",
     age: "Âge",
     autoRetrieved: "auto-récupéré",
+
+    // History page
+    historyTitle: "Historique des CSV générés",
+    historySubtitle: "Tous les fichiers CSV exportés depuis les analyses de litiges",
+    historyEmpty: "Aucun CSV généré pour l'instant",
+    historyEmptyHint: "Analysez des litiges et téléchargez un CSV pour le voir apparaître ici.",
+    historyDate: "Date",
+    historyFile: "Nom du fichier",
+    historyRows: "Lignes",
+    historyResolved: "Résolus IA",
+    historyDownload: "Télécharger",
+    historyDelete: "Supprimer",
+    historyClear: "Vider l'historique",
   },
 } as const;
 

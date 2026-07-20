@@ -3,11 +3,8 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
-  LayoutDashboard,
   FileSearch,
   History,
-  BarChart3,
-  Settings,
   Shield,
   ChevronRight,
 } from "lucide-react";
@@ -20,33 +17,14 @@ export function Sidebar() {
 
   const navItems = [
     {
-      label: t("dashboard"),
-      href: "/",
-      icon: LayoutDashboard,
-    },
-    {
       label: t("analyzeDispute"),
       href: "/",
       icon: FileSearch,
-      active: true,
     },
     {
       label: t("history"),
-      href: "#",
+      href: "/history",
       icon: History,
-      disabled: true,
-    },
-    {
-      label: t("analytics"),
-      href: "#",
-      icon: BarChart3,
-      disabled: true,
-    },
-    {
-      label: t("settings"),
-      href: "#",
-      icon: Settings,
-      disabled: true,
     },
   ];
 
@@ -77,24 +55,19 @@ export function Sidebar() {
         </p>
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive =
-            !item.disabled && (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
+          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 
           return (
             <Link
               key={item.label}
-              href={item.disabled ? "#" : item.href}
-              aria-disabled={item.disabled}
+              href={item.href}
               aria-current={isActive ? "page" : undefined}
               className={cn(
                 "group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                 isActive
                   ? "bg-blue-600/15 text-blue-400 border border-blue-500/20"
-                  : item.disabled
-                  ? "text-slate-600 cursor-not-allowed"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/70"
               )}
-              tabIndex={item.disabled ? -1 : 0}
             >
               <Icon
                 className={cn(
@@ -105,11 +78,6 @@ export function Sidebar() {
               <span className="flex-1">{item.label}</span>
               {isActive && (
                 <ChevronRight className="w-3.5 h-3.5 text-blue-400/60" />
-              )}
-              {item.disabled && (
-                <span className="text-[9px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded font-medium uppercase tracking-wide">
-                  {t("soon")}
-                </span>
               )}
             </Link>
           );

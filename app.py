@@ -145,22 +145,49 @@ Réponds uniquement en JSON structuré."""),
 async def chat(request: ChatRequest):
     try:
         import re
+
+        # ── Détection automatique de la langue de la question ──────────────────
+        def detect_language(text: str) -> str:
+            """Returns 'fr' or 'en' based on the question text itself, ignoring UI lang."""
+            t = text.lower().strip()
+            fr_markers = [
+                "combien", "quel", "quelle", "quels", "quelles", "comment",
+                "pourquoi", "est-ce", "donnez", "donne", "avez", "sont",
+                "litiges", "litige", "résolu", "résoudre", "montant",
+                "statistiques", "statistique", "contrepartie", "accord",
+                "taux", "nombre", "liste", "tous", "toutes",
+            ]
+            en_markers = [
+                "what", "how", "why", "which", "who", "where", "when",
+                "how many", "how much", "give me", "show me", "list",
+                "dispute", "disputes", "resolved", "resolve", "amount",
+                "statistics", "counterparty", "agreement", "rate", "count",
+                "total", "average",
+            ]
+            fr_score = sum(1 for w in fr_markers if re.search(rf'\b{w}\b', t))
+            en_score = sum(1 for w in en_markers if re.search(rf'\b{w}\b', t))
+            return "en" if en_score > fr_score else "fr"
+
+        detected_lang = detect_language(request.question)
+
         # Détection du type de question
         question_lower = request.question.lower()
         
         # Mots clés stricts pour les questions statistiques
         stat_keywords = [
             "combien", "nombre", "total", "statistique", "statistiques", "moyenne", 
-            "tous", "liste", "quels sont", "how many", "count"
+            "tous", "liste", "quels sont", "how many", "count", "how much", "total amount",
         ]
         
-        # Utiliser une recherche de mots entiers pour éviter que "résolution" ne matche "résolu"
-        is_statistical = any(re.search(rf'\b{word}\b', question_lower) for word in stat_keywords)
+        is_statistical = any(re.search(rf'\b{re.escape(word)}\b', question_lower) for word in stat_keywords)
         
         total_docs = collection.count()
         
-        # Instruction de langue dynamique (Auto-détection de la langue de la question)
-        response_instruction = "CRITICAL: You MUST detect the language of the user's question. If the user asks in English, you MUST reply entirely in English (translate the context if necessary). If the user asks in French, reply entirely in French."
+        # Instruction de langue basée sur la détection automatique
+        if detected_lang == "en":
+            response_instruction = "CRITICAL: The user asked in ENGLISH. You MUST reply entirely in English."
+        else:
+            response_instruction = "CRITIQUE : L'utilisateur a posé sa question en FRANÇAIS. Tu DOIS répondre entièrement en français."
         
         if is_statistical:
             # Pour les questions statistiques, lire directement le CSV
@@ -195,7 +222,7 @@ async def chat(request: ChatRequest):
             total_amount = df['DISPUTE_AMOUNT'].sum()
             max_amount = df['DISPUTE_AMOUNT'].max()
             
-            if request.language == "en":
+            if detected_lang == "en":
                 context = f"""Complete statistics from the CollateralGPT database:
 
 GENERAL SUMMARY:
@@ -251,7 +278,7 @@ EXEMPLES DE RÉSOLUTIONS:
             results = collection.query(query_texts=[request.question], n_results=5)
             context_docs = "\n".join(results["documents"][0]) if results["documents"][0] else "Aucun historique."
             
-            if request.language == "en":
+            if detected_lang == "en":
                 context = f"Database: {total_docs} total disputes.\n\nSimilar cases found:\n{context_docs}"
             else:
                 context = f"Base de données: {total_docs} litiges au total.\n\nCas similaires trouvés:\n{context_docs}"

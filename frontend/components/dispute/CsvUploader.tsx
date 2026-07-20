@@ -288,6 +288,19 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+
+    // Save to history in localStorage
+    const historyKey = "cgpt_csv_history";
+    const existing = JSON.parse(localStorage.getItem(historyKey) ?? "[]");
+    const entry = {
+      id: Date.now().toString(),
+      fileName: `${fileName.replace(/\.csv$/i, "")}_complet_resolu.csv`,
+      date: new Date().toISOString(),
+      totalRows: parsed.allRows.length,
+      aiResolved: resolvedMap.size,
+      csvContent,
+    };
+    localStorage.setItem(historyKey, JSON.stringify([entry, ...existing].slice(0, 50)));
   };
 
 
