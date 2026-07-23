@@ -9,6 +9,11 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 import chromadb
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from auth import router as auth_router
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +29,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Auth routes
+app.include_router(auth_router)
 # Utilisation d'un client persistant pour stocker la base vectorielle localement
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 collection = chroma_client.get_or_create_collection(name="litigations")

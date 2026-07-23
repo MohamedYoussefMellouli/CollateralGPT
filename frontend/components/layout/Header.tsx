@@ -1,8 +1,10 @@
 "use client";
 
-import { Bell, Search, HelpCircle, Menu, Moon, Sun, Languages } from "lucide-react";
+import { Bell, Search, HelpCircle, Menu, Moon, Sun, Languages, LogOut, User } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "@/components/Providers";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   title?: string;
@@ -12,6 +14,27 @@ interface HeaderProps {
 export function Header({ title, subtitle }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { language, toggleLanguage, t } = useTranslation();
+  const router = useRouter();
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userName, setUserName]   = useState<string | null>(null);
+
+  useEffect(() => {
+    const raw = localStorage.getItem("cgpt_user");
+    if (raw) {
+      try {
+        const u = JSON.parse(raw);
+        setUserEmail(u.email);
+        const fullName = [u.prenom, u.nom].filter(Boolean).join(" ");
+        setUserName(fullName || u.email);
+      } catch {}
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("cgpt_token");
+    localStorage.removeItem("cgpt_user");
+    router.push("/login");
+  };
 
   return (
     <header
@@ -98,6 +121,24 @@ export function Header({ title, subtitle }: HeaderProps) {
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" aria-hidden="true" />
           <span className="text-xs text-slate-400">{t("engineOnline")}</span>
         </div>
+
+        {/* User + Logout */}
+        {userEmail && (
+          <div className="hidden sm:flex items-center gap-2 pl-2 ml-1 border-l border-slate-800">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <User className="w-3.5 h-3.5" />
+              <span className="max-w-[140px] truncate font-medium">{userName}</span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+              aria-label="Se déconnecter"
+              title="Se déconnecter"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

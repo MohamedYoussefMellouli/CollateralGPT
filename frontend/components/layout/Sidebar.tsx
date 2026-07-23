@@ -2,10 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   FileSearch,
   History,
-  Shield,
   ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,18 @@ import { useTranslation } from "@/components/Providers";
 export function Sidebar() {
   const pathname = usePathname();
   const { t } = useTranslation();
+  const [userName, setUserName] = useState("");
+
+  useEffect(() => {
+    const raw = localStorage.getItem("cgpt_user");
+    if (raw) {
+      try {
+        const u = JSON.parse(raw);
+        const full = [u.prenom, u.nom].filter(Boolean).join(" ");
+        setUserName(full || u.email || "");
+      } catch {}
+    }
+  }, []);
 
   const navItems = [
     {
@@ -88,10 +100,10 @@ export function Sidebar() {
       <div className="px-4 py-4 border-t border-slate-800">
         <div className="flex items-center gap-3 px-2 py-2 rounded-lg">
           <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-            AI
+            {userName ? userName.charAt(0).toUpperCase() : "AI"}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-slate-300 truncate">{t("aiAnalyst")}</p>
+            <p className="text-xs font-semibold text-slate-300 truncate">{userName || t("aiAnalyst")}</p>
             <p className="text-[10px] text-slate-500 truncate">{t("poweredBy")}</p>
           </div>
           <div className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 animate-pulse" aria-label="Online" />

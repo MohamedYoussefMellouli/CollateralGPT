@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
-import { Chatbot } from "@/components/chat/Chatbot";
+import { AppShell } from "@/components/AppShell";
 
 // ─── Fonts loaded via next/font (no @import url() needed in CSS) ─────────────
 const inter = Inter({
@@ -56,21 +54,9 @@ export default function RootLayout({
         style={{ fontFamily: "var(--font-inter), system-ui, sans-serif" }}
       >
         <Providers>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <div className="flex flex-col flex-1 lg:ml-64 min-w-0">
-              <Header />
-              <main
-                className="flex-1 p-4 sm:p-6 max-w-screen-2xl w-full mx-auto"
-                id="main-content"
-                aria-label="Main content"
-              >
-                {children}
-              </main>
-            </div>
-          </div>
-          {/* Floating Chatbot Widget */}
-          <Chatbot />
+          <AppShell>
+            {children}
+          </AppShell>
         </Providers>
       </body>
     </html>
