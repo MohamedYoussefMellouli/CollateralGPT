@@ -53,6 +53,14 @@ export default function DashboardPage() {
   const [prefillValues,  setPrefillValues]   = useState<Partial<DisputeFormData> | undefined>();
   const [csvInfo,        setCsvInfo]         = useState<{ current: number; total: number } | null>(null);
 
+  // Tracks full analysis results by dispute_id so they persist across navigation
+  interface CachedAnalysis {
+    input: DisputeInput;
+    response: AnalysisResponse;
+    formData: DisputeFormData;
+  }
+  const analysisCacheRef = useRef<Map<string, CachedAnalysis>>(new Map());
+
   // Tracks AI resolutions by SNAPSHOT_ID for the bulk CSV export
   const resolvedMapRef = useRef<ResolvedMap>(new Map());
   const [resolvedMap,   setResolvedMap]      = useState<ResolvedMap>(new Map());
@@ -65,6 +73,8 @@ export default function DashboardPage() {
 
     // Register this resolution in the map so the bulk export can use it
     if (formData.dispute_id) {
+      analysisCacheRef.current.set(formData.dispute_id, { input, response, formData });
+
       const entry: ResolvedEntry = {
         resolution: response.suggested_resolution.trim().replace(/[\r\n]+/g, " "),
         reasonCode: response.predicted_reason_code,
@@ -87,10 +97,18 @@ export default function DashboardPage() {
   ) => {
     setPrefillValues(values);
     setCsvInfo({ current: index + 1, total });
-    // Clear previous analysis result when navigating to a new dispute
-    setResult(null);
-    setSubmittedInput(null);
-    setSubmittedFormData(null);
+    
+    if (values.dispute_id && analysisCacheRef.current.has(values.dispute_id)) {
+      const cached = analysisCacheRef.current.get(values.dispute_id)!;
+      setResult(cached.response);
+      setSubmittedInput(cached.input);
+      setSubmittedFormData(cached.formData);
+    } else {
+      // Clear previous analysis result when navigating to a new dispute
+      setResult(null);
+      setSubmittedInput(null);
+      setSubmittedFormData(null);
+    }
   };
 
   const handleClearCsv = () => {
@@ -102,6 +120,7 @@ export default function DashboardPage() {
     // Reset the resolved map when a new file is loaded
     resolvedMapRef.current = new Map();
     setResolvedMap(new Map());
+    analysisCacheRef.current = new Map();
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -109,6 +128,7 @@ export default function DashboardPage() {
     // Reset map whenever a new file is imported
     resolvedMapRef.current = new Map();
     setResolvedMap(new Map());
+    analysisCacheRef.current = new Map();
   };
 
   return (

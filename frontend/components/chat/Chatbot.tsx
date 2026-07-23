@@ -61,10 +61,19 @@ export function Chatbot() {
     setIsLoading(true);
 
     try {
+      let sessionStats = null;
+      try {
+        const statsStr = localStorage.getItem('cgpt_current_stats');
+        if (statsStr) sessionStats = JSON.parse(statsStr);
+      } catch (e) {}
+
       const { data } = await apiClient.post("/api/chat", {
         question: userMessage.content,
         language: language, // Envoyer la langue au backend
-        history: messages.map(m => ({ role: m.role, content: m.content }))
+        history: messages.map(m => ({ role: m.role, content: m.content })),
+        session_resolved: sessionStats?.resolved,
+        session_unresolved: sessionStats?.unresolved,
+        session_total: sessionStats?.total
       });
 
       const aiMessage: ChatMessage = {

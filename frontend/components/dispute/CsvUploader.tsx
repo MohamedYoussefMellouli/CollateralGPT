@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Papa from "papaparse";
 import type { CsvRow, ParsedCsvResult, ResolvedMap } from "@/types/csv";
 import type { DisputeFormData } from "@/lib/validators";
@@ -92,6 +92,21 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
   const [activeIndex, setActiveIndex] = useState(0);
   const [fileName, setFileName] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+
+  // Save current UI session stats to localStorage so the Chatbot can use them
+  useEffect(() => {
+    if (!parsed) return;
+    const { unresolved, resolved, total } = parsed;
+    const aiResolvedCount = resolvedMap.size;
+    const actualUnresolvedCount = unresolved.filter(r => !resolvedMap.has(r.SNAPSHOT_ID)).length;
+    const totalResolvedCount = resolved.length + aiResolvedCount;
+
+    localStorage.setItem('cgpt_current_stats', JSON.stringify({
+      total: total,
+      resolved: totalResolvedCount,
+      unresolved: actualUnresolvedCount
+    }));
+  }, [parsed, resolvedMap]);
 
   const handleFile = (file: File) => {
     setFileName(file.name);
@@ -351,6 +366,12 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
   const { unresolved, resolved, total } = parsed;
   const current = unresolved[activeIndex];
   const aiResolvedCount = resolvedMap.size;
+  
+  // Actually unresolved items are those from 'unresolved' that haven't been resolved by AI yet.
+  const actualUnresolvedCount = unresolved.filter(r => !resolvedMap.has(r.SNAPSHOT_ID)).length;
+  const totalResolvedCount = resolved.length + aiResolvedCount;
+
+
 
   return (
     <div className="space-y-3">
@@ -374,7 +395,7 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
           <span className="text-[9px] text-slate-500 uppercase tracking-wide mt-0.5">Total</span>
         </div>
         <div className="flex flex-col items-center p-2 bg-red-500/5 rounded-lg border border-red-500/20">
-          <span className="text-base font-bold text-red-400">{unresolved.length}</span>
+          <span className="text-base font-bold text-red-400">{actualUnresolvedCount}</span>
           <div className="flex items-center gap-1 mt-0.5">
             <AlertCircle className="w-2.5 h-2.5 text-red-400" />
             <span className="text-[9px] text-red-400 uppercase tracking-wide">À traiter</span>
@@ -389,10 +410,49 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
         </div>
       </div>
 
-      {unresolved.length === 0 ? (
+      {actualUnresolvedCount === 0 && unresolved.length > 0 ? (
+        <>
+          <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mb-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <p className="text-xs text-emerald-400">Tous les litiges sont résolus !</p>
+          </div>
+          {/* Active dispute navigator (still visible so they can review) */}
+          <div className="flex items-center justify-between px-3 py-2 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+            <button
+              onClick={() => navigate(-1)}
+              disabled={activeIndex === 0}
+              className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              aria-label="Previous dispute"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <div className="text-center">
+              <p className="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">
+                Litige
+              </p>
+              <p className="text-xs font-bold text-white mt-0.5">
+                {activeIndex + 1} / {unresolved.length}
+              </p>
+              <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                #{current?.SNAPSHOT_ID}
+              </p>
+            </div>
+
+            <button
+              onClick={() => navigate(1)}
+              disabled={activeIndex === unresolved.length - 1}
+              className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              aria-label="Next dispute"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </>
+      ) : unresolved.length === 0 ? (
         <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          <p className="text-xs text-emerald-400">Tous les litiges sont résolus !</p>
+          <p className="text-xs text-emerald-400">Aucun litige à traiter.</p>
         </div>
       ) : (
         <>
@@ -409,7 +469,7 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
 
             <div className="text-center">
               <p className="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">
-                Litige à traiter
+                Litige en cours
               </p>
               <p className="text-xs font-bold text-white mt-0.5">
                 {activeIndex + 1} / {unresolved.length}

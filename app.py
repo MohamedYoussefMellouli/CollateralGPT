@@ -64,6 +64,9 @@ class ChatRequest(BaseModel):
     question: str
     language: str = "fr"  # Langue par défaut français
     history: List[dict] = []
+    session_resolved: Optional[int] = None
+    session_unresolved: Optional[int] = None
+    session_total: Optional[int] = None
 
 class ChatResponse(BaseModel):
     answer: str
@@ -198,15 +201,21 @@ async def chat(request: ChatRequest):
             df['RECONCILIATION_COMMENT'] = df['RECONCILIATION_COMMENT'].fillna('')
             df['REASON_CODE'] = df['REASON_CODE'].fillna('')
             
-            # Statistiques détaillées
-            total_litiges = len(df)
             # Un litige est résolu si RECONCILIATION_COMMENT n'est pas vide et ne contient pas "zeineb"
             resolved = df[
                 (df['RECONCILIATION_COMMENT'].str.strip() != '') & 
                 (~df['RECONCILIATION_COMMENT'].str.lower().str.contains('zeineb'))
             ]
-            resolved_count = len(resolved)
-            unresolved_count = total_litiges - resolved_count
+
+            # Statistiques par défaut (du CSV global)
+            csv_total_litiges = len(df)
+            csv_resolved_count = len(resolved)
+            csv_unresolved_count = csv_total_litiges - csv_resolved_count
+
+            # Surcharger avec les statistiques de la session utilisateur si disponibles
+            total_litiges = request.session_total if request.session_total is not None else csv_total_litiges
+            resolved_count = request.session_resolved if request.session_resolved is not None else csv_resolved_count
+            unresolved_count = request.session_unresolved if request.session_unresolved is not None else csv_unresolved_count
             
             # Statistiques par reason code
             reason_codes = df['REASON_CODE'].value_counts().to_dict()
