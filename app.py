@@ -146,6 +146,22 @@ Réponds uniquement en JSON structuré."""),
         response_data = llm_output.model_dump()
         response_data["similar_past_disputes"] = similar_disputes
         
+        # Nettoyage de la résolution si l'IA a mis un dictionnaire (ex: Mistral qui imbrique du JSON)
+        res_text = response_data.get("suggested_resolution", "").strip()
+        if res_text.startswith("{") and res_text.endswith("}"):
+            import ast
+            try:
+                res_dict = ast.literal_eval(res_text)
+                if isinstance(res_dict, dict):
+                    parts = []
+                    if "Action" in res_dict: parts.append(f"Action : {res_dict['Action']}")
+                    if "Source de vérification" in res_dict: parts.append(f"Source : {res_dict['Source de vérification']}")
+                    if "Justification" in res_dict: parts.append(f"Justification : {res_dict['Justification']}")
+                    if parts:
+                        response_data["suggested_resolution"] = " | ".join(parts)
+            except Exception as parse_e:
+                logger.warning(f"Impossible de parser la résolution imbriquée : {parse_e}")
+        
         logger.info(f"[FIN] Analyse complète en {time.time() - start_time:.2f}s")
         return DecisionResponse(**response_data)
         

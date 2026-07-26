@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DisputeForm } from "@/components/dispute/DisputeForm";
 import { CsvUploader } from "@/components/dispute/CsvUploader";
 import { SummaryCard } from "@/components/dispute/SummaryCard";
@@ -65,6 +65,45 @@ export default function DashboardPage() {
   const resolvedMapRef = useRef<ResolvedMap>(new Map());
   const [resolvedMap,   setResolvedMap]      = useState<ResolvedMap>(new Map());
 
+  // Restore from sessionStorage on mount
+  useEffect(() => {
+    const saved = sessionStorage.getItem("cgpt_page_state");
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        if (state.resolvedMap) {
+          const map = new Map(Object.entries(state.resolvedMap));
+          resolvedMapRef.current = map as any;
+          setResolvedMap(map as any);
+        }
+        if (state.analysisCache) {
+          analysisCacheRef.current = new Map(Object.entries(state.analysisCache)) as any;
+        }
+        if (state.submittedInput) setSubmittedInput(state.submittedInput);
+        if (state.submittedFormData) setSubmittedFormData(state.submittedFormData);
+        if (state.result) setResult(state.result);
+        if (state.prefillValues) setPrefillValues(state.prefillValues);
+        if (state.csvInfo) setCsvInfo(state.csvInfo);
+      } catch (e) {
+        console.error("Failed to parse page state", e);
+      }
+    }
+  }, []);
+
+  // Save to sessionStorage when state changes
+  useEffect(() => {
+    const state = {
+      resolvedMap: Object.fromEntries(resolvedMapRef.current),
+      analysisCache: Object.fromEntries(analysisCacheRef.current),
+      submittedInput,
+      submittedFormData,
+      result,
+      prefillValues,
+      csvInfo
+    };
+    sessionStorage.setItem("cgpt_page_state", JSON.stringify(state));
+  }, [resolvedMap, submittedInput, submittedFormData, result, prefillValues, csvInfo]);
+
   const handleResult = (input: DisputeInput, response: AnalysisResponse, formData: DisputeFormData) => {
     setSubmittedInput(input);
     setResult(response);
@@ -121,6 +160,8 @@ export default function DashboardPage() {
     resolvedMapRef.current = new Map();
     setResolvedMap(new Map());
     analysisCacheRef.current = new Map();
+    sessionStorage.removeItem("cgpt_page_state");
+    sessionStorage.removeItem("cgpt_csv_uploader_state");
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars

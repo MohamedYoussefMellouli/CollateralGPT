@@ -93,6 +93,30 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
   const [fileName, setFileName] = useState("");
   const [isDragging, setIsDragging] = useState(false);
 
+  // Load from session storage on mount
+  useEffect(() => {
+    const saved = sessionStorage.getItem("cgpt_csv_uploader_state");
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        setParsed(state.parsed);
+        setActiveIndex(state.activeIndex);
+        setFileName(state.fileName);
+      } catch (e) {
+        console.error("Failed to parse csv uploader state", e);
+      }
+    }
+  }, []);
+
+  // Save to session storage when state changes
+  useEffect(() => {
+    if (parsed) {
+      sessionStorage.setItem("cgpt_csv_uploader_state", JSON.stringify({ parsed, activeIndex, fileName }));
+    } else {
+      sessionStorage.removeItem("cgpt_csv_uploader_state");
+    }
+  }, [parsed, activeIndex, fileName]);
+
   // Save current UI session stats to localStorage so the Chatbot can use them
   useEffect(() => {
     if (!parsed) return;
@@ -178,6 +202,7 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
     setActiveIndex(0);
     setFileName("");
     if (inputRef.current) inputRef.current.value = "";
+    sessionStorage.removeItem("cgpt_csv_uploader_state");
     onClear();
   };
 
@@ -524,24 +549,37 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
         </>
       )}
 
-      {/* ── Download full CSV button ───────────────────────────────────────── */}
-      <button
-        onClick={handleDownloadAll}
-        disabled={aiResolvedCount === 0 && resolved.length === 0}
-        className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200
-          bg-gradient-to-r from-blue-600/90 to-indigo-600/90 hover:from-blue-500 hover:to-indigo-500
-          text-white border-blue-500/30 shadow-md shadow-blue-500/10
-          hover:shadow-blue-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
-        aria-label="Télécharger le CSV complet avec les résolutions IA"
-      >
-        <FileDown className="w-3.5 h-3.5" />
-        <span>Télécharger CSV complet</span>
-        {aiResolvedCount > 0 && (
-          <span className="ml-1 bg-blue-400/20 text-blue-200 text-[9px] px-1.5 py-0.5 rounded-full border border-blue-400/30">
-            {aiResolvedCount} IA
-          </span>
-        )}
-      </button>
+      {/* ── Actions ───────────────────────────────────────── */}
+      <div className="flex flex-col gap-2 mt-2">
+        <button
+          onClick={handleDownloadAll}
+          disabled={aiResolvedCount === 0 && resolved.length === 0}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200
+            bg-gradient-to-r from-blue-600/90 to-indigo-600/90 hover:from-blue-500 hover:to-indigo-500
+            text-white border-blue-500/30 shadow-md shadow-blue-500/10
+            hover:shadow-blue-500/30 disabled:opacity-40 disabled:cursor-not-allowed"
+          aria-label="Télécharger le CSV complet avec les résolutions IA"
+        >
+          <FileDown className="w-3.5 h-3.5" />
+          <span>Télécharger CSV complet</span>
+          {aiResolvedCount > 0 && (
+            <span className="ml-1 bg-blue-400/20 text-blue-200 text-[9px] px-1.5 py-0.5 rounded-full border border-blue-400/30">
+              {aiResolvedCount} IA
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={clear}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all duration-200
+            bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700
+            hover:border-slate-600 shadow-sm"
+          aria-label="Importer un autre fichier CSV"
+        >
+          <Upload className="w-3.5 h-3.5" />
+          <span>Importer un autre fichier</span>
+        </button>
+      </div>
     </div>
   );
 }
