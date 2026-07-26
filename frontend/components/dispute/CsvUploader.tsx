@@ -16,6 +16,7 @@ import {
   FileDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/components/Providers";
 
 interface CsvUploaderProps {
   /** Called whenever the active unresolved dispute changes */
@@ -92,6 +93,7 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
   const [activeIndex, setActiveIndex] = useState(0);
   const [fileName, setFileName] = useState("");
   const [isDragging, setIsDragging] = useState(false);
+  const { t } = useTranslation();
 
   // Load from session storage on mount
   useEffect(() => {
@@ -379,10 +381,10 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
         </div>
         <div className="text-center">
           <p className="text-sm font-semibold text-slate-300">
-            Importer un fichier CSV
+            {t("importCsv")}
           </p>
           <p className="text-[10px] text-slate-500 mt-0.5">
-            Glisser-déposer ou cliquer • Séparateur <code className="text-slate-400">;</code>
+            {t("clickToBrowse")} <code className="text-slate-400">;</code>
           </p>
         </div>
         <input
@@ -427,20 +429,20 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
       <div className="grid grid-cols-3 gap-2">
         <div className="flex flex-col items-center p-2 bg-slate-800/40 rounded-lg border border-slate-700/50">
           <span className="text-base font-bold text-white">{total}</span>
-          <span className="text-[9px] text-slate-500 uppercase tracking-wide mt-0.5">Total</span>
+          <span className="text-[9px] text-slate-500 uppercase tracking-wide mt-0.5">{t("total")}</span>
         </div>
         <div className="flex flex-col items-center p-2 bg-red-500/5 rounded-lg border border-red-500/20">
           <span className="text-base font-bold text-red-400">{actualUnresolvedCount}</span>
           <div className="flex items-center gap-1 mt-0.5">
             <AlertCircle className="w-2.5 h-2.5 text-red-400" />
-            <span className="text-[9px] text-red-400 uppercase tracking-wide">À traiter</span>
+            <span className="text-[9px] text-red-400 uppercase tracking-wide">{t("toProcess")}</span>
           </div>
         </div>
         <div className="flex flex-col items-center p-2 bg-emerald-500/5 rounded-lg border border-emerald-500/20">
           <span className="text-base font-bold text-emerald-400">{resolved.length + aiResolvedCount}</span>
           <div className="flex items-center gap-1 mt-0.5">
             <CheckCircle2 className="w-2.5 h-2.5 text-emerald-400" />
-            <span className="text-[9px] text-emerald-400 uppercase tracking-wide">Résolus</span>
+            <span className="text-[9px] text-emerald-400 uppercase tracking-wide">{t("resolved")}</span>
           </div>
         </div>
       </div>
@@ -449,7 +451,7 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
         <>
           <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mb-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <p className="text-xs text-emerald-400">Tous les litiges sont résolus !</p>
+            <p className="text-xs text-emerald-400">{t("allDisputesResolved")}</p>
           </div>
           {/* Active dispute navigator (still visible so they can review) */}
           <div className="flex items-center justify-between px-3 py-2 bg-amber-500/5 border border-amber-500/20 rounded-xl">
@@ -464,7 +466,7 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
 
             <div className="text-center">
               <p className="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">
-                Litige
+                {t("currentDispute")}
               </p>
               <p className="text-xs font-bold text-white mt-0.5">
                 {activeIndex + 1} / {unresolved.length}
@@ -487,7 +489,7 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
       ) : unresolved.length === 0 ? (
         <div className="flex items-center gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          <p className="text-xs text-emerald-400">Aucun litige à traiter.</p>
+          <p className="text-xs text-emerald-400">{t("noDisputesToProcess")}</p>
         </div>
       ) : (
         <>
@@ -504,7 +506,7 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
 
             <div className="text-center">
               <p className="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">
-                Litige en cours
+                {t("currentDispute")}
               </p>
               <p className="text-xs font-bold text-white mt-0.5">
                 {activeIndex + 1} / {unresolved.length}
@@ -527,22 +529,22 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
           {/* Row metadata preview */}
           <div className="text-[10px] text-slate-500 space-y-0.5 px-1">
             <div className="flex justify-between">
-              <span>Contrepartie</span>
+              <span>{t("counterparty")}</span>
               <span className="text-slate-400 font-medium">{current?.COUNTERPARTY_CODE}</span>
             </div>
             <div className="flex justify-between">
-              <span>Accord</span>
+              <span>{t("agreementType")}</span>
               <span className="text-slate-400 font-medium truncate max-w-[60%] text-right">{current?.AGREEMENT_DESC}</span>
             </div>
             <div className="flex justify-between">
-              <span>Montant</span>
-              <span className="text-amber-400 font-semibold">{Number(current?.DISPUTE_AMOUNT || 0).toLocaleString("fr-FR")} {current?.CURRENCY || "–"}</span>
+              <span>{t("amount")}</span>
+              <span className="text-amber-400 font-semibold">{Number(current?.DISPUTE_AMOUNT || 0).toLocaleString(t("amount") === "Amount" ? "en-US" : "fr-FR")} {current?.CURRENCY || "–"}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span>Âge</span>
+              <span>{t("age")}</span>
               <span className="flex items-center gap-1 text-slate-400">
                 <Clock className="w-2.5 h-2.5" />
-                {current?.DISPUTE_AGE_DAYS} j
+                {current?.DISPUTE_AGE_DAYS} {t("days").substring(0, 1)}
               </span>
             </div>
           </div>
@@ -561,7 +563,7 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
           aria-label="Télécharger le CSV complet avec les résolutions IA"
         >
           <FileDown className="w-3.5 h-3.5" />
-          <span>Télécharger CSV complet</span>
+          <span>{t("downloadCompleteCsv")}</span>
           {aiResolvedCount > 0 && (
             <span className="ml-1 bg-blue-400/20 text-blue-200 text-[9px] px-1.5 py-0.5 rounded-full border border-blue-400/30">
               {aiResolvedCount} IA
@@ -577,7 +579,7 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
           aria-label="Importer un autre fichier CSV"
         >
           <Upload className="w-3.5 h-3.5" />
-          <span>Importer un autre fichier</span>
+          <span>{t("importAnotherFile")}</span>
         </button>
       </div>
     </div>

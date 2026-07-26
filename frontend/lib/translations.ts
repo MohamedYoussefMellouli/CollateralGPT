@@ -7,24 +7,36 @@ export const translations = {
     help: "Help",
     notifications: "Notifications",
     engineOnline: "Engine online",
+    engineOffline: "Engine offline",
     switchToLight: "Switch to light mode",
     switchToDark: "Switch to dark mode",
     
-    // Sidebar
+    // Sidebar & Navigation
     menu: "MENU",
-    dashboard: "Dashboard",
-    analyzeDispute: "Analyze Dispute",
+    overview: "Overview",
     history: "History",
-    analytics: "Analytics",
     settings: "Settings",
     soon: "SOON",
     aiAnalyst: "AI Analyst",
     poweredBy: "Powered by Mistral",
     
-    // Dashboard Stats
-    total: "Total",
+    // File Uploader & Forms
+    importCsv: "Import CSV",
     toProcess: "To Process",
     resolved: "Resolved",
+    currentDispute: "Current Dispute",
+    allDisputesResolved: "All disputes resolved!",
+    noDisputesToProcess: "No disputes to process.",
+    downloadCompleteCsv: "Download complete CSV",
+    importAnotherFile: "Import another file",
+    dropFileHere: "Upload a CSV file",
+    clickToBrowse: "Drag & drop or click • Separator",
+    eventIdPlaceholder: "Event ID...",
+    describeDisputePlaceholder: "Describe the nature of the dispute...",
+    ragMainInput: "Main input for RAG engine",
+    
+    // Dashboard Stats
+    total: "Total",
     model: "MODEL",
     engine: "ENGINE",
     online: "Online",
@@ -42,10 +54,6 @@ export const translations = {
     
     // CSV Upload
     uploadCSVInstruction: "Upload new CSV or import CSV",
-    importCSV: "IMPORT CSV",
-    dragDropFile: "Drag-drop or click to import",
-    disputeToProcess: "Dispute to process",
-    allResolved: "All disputes are resolved!",
     
     // Form Labels
     identification: "IDENTIFICATION",
@@ -145,24 +153,36 @@ export const translations = {
     help: "Aide",
     notifications: "Notifications",
     engineOnline: "Moteur en ligne",
+    engineOffline: "Moteur hors ligne",
     switchToLight: "Passer en mode clair",
     switchToDark: "Passer en mode sombre",
     
-    // Sidebar
+    // Sidebar & Navigation
     menu: "MENU",
-    dashboard: "Tableau de bord",
-    analyzeDispute: "Analyser un Litige",
+    overview: "Aperçu",
     history: "Historique",
-    analytics: "Analytiques",
     settings: "Paramètres",
     soon: "BIENTÔT",
     aiAnalyst: "Analyste IA",
     poweredBy: "Propulsé par Mistral",
     
-    // Dashboard Stats
-    total: "Total",
+    // File Uploader & Forms
+    importCsv: "Importer CSV",
     toProcess: "À traiter",
     resolved: "Résolus",
+    currentDispute: "Litige en cours",
+    allDisputesResolved: "Tous les litiges sont résolus !",
+    noDisputesToProcess: "Aucun litige à traiter.",
+    downloadCompleteCsv: "Télécharger CSV complet",
+    importAnotherFile: "Importer un autre fichier",
+    dropFileHere: "Importer un fichier CSV",
+    clickToBrowse: "Glisser-déposer ou cliquer • Séparateur",
+    eventIdPlaceholder: "ID de l'événement...",
+    describeDisputePlaceholder: "Décrivez la nature du litige...",
+    ragMainInput: "Entrée principale pour le moteur RAG",
+    
+    // Dashboard Stats
+    total: "Total",
     model: "MODÈLE",
     engine: "MOTEUR",
     online: "En ligne",
