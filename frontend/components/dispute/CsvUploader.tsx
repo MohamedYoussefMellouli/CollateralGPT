@@ -110,29 +110,47 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
 
   const handleFile = (file: File) => {
     setFileName(file.name);
-    Papa.parse<Record<string, string>>(file, {
-      header: true,
-      delimiter: ";",
-      skipEmptyLines: true,
-      complete: (results) => {
-        const rows = results.data.map(normalise);
-        const isResolved = (c: string | undefined) => {
-          if (!c) return false;
-          const lower = c.trim().toLowerCase();
-          return lower !== "" && lower !== "nan" && lower !== "null" && lower !== "none" && !lower.includes("zeineb");
-        };
 
-        const resolved = rows.filter((r) => isResolved(r.RECONCILIATION_COMMENT));
-        const unresolved = rows.filter((r) => !isResolved(r.RECONCILIATION_COMMENT));
-        const parsed: ParsedCsvResult = { unresolved, resolved, allRows: rows, total: rows.length };
-        setParsed(parsed);
-        setActiveIndex(0);
-        onAllRowsReady(rows);
-        if (unresolved.length > 0) {
-          onDisputeSelect(rowToFormValues(unresolved[0]), 0, unresolved.length);
-        }
-      },
-    });
+    // Read as ArrayBuffer to handle both UTF-8 and Windows-1252 encodings
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const buffer = e.target?.result as ArrayBuffer;
+      if (!buffer) return;
+
+      // Try UTF-8 first, fall back to Windows-1252 if it contains replacement chars
+      let text: string;
+      try {
+        const utf8 = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+        text = utf8;
+      } catch {
+        text = new TextDecoder("windows-1252").decode(buffer);
+      }
+
+      Papa.parse<Record<string, string>>(text, {
+        header: true,
+        delimiter: ";",
+        skipEmptyLines: true,
+        complete: (results) => {
+          const rows = results.data.map(normalise);
+          const isResolved = (c: string | undefined) => {
+            if (!c) return false;
+            const lower = c.trim().toLowerCase();
+            return lower !== "" && lower !== "nan" && lower !== "null" && lower !== "none" && !lower.includes("zeineb");
+          };
+
+          const resolved   = rows.filter((r) => isResolved(r.RECONCILIATION_COMMENT));
+          const unresolved = rows.filter((r) => !isResolved(r.RECONCILIATION_COMMENT));
+          const parsed: ParsedCsvResult = { unresolved, resolved, allRows: rows, total: rows.length };
+          setParsed(parsed);
+          setActiveIndex(0);
+          onAllRowsReady(rows);
+          if (unresolved.length > 0) {
+            onDisputeSelect(rowToFormValues(unresolved[0]), 0, unresolved.length);
+          }
+        },
+      });
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,37 +196,28 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
    */
   const isVagueComment = (comment: string): boolean => {
     const c = comment.trim().toLowerCase();
-    // JSON dict output from LLM (starts with { or contains 'action':)
     const isJsonDict = c.startsWith("{") || c.includes("'action':");
-    return (
-      c.includes("new comment") ||
-      c.includes("zeineb") ||
-      isJsonDict
-    );
+    const isGeneric =
+      /^new comment\s*\d*$/i.test(c) ||
+      /^reconciliation comment\s*\d*$/i.test(c);
+    return c.includes("zeineb") || isGeneric || isJsonDict;
   };
 
-  /**
-   * Cleans an AI result that may be a raw JSON dict string into a plain sentence.
-   * e.g. "{'Action': 'Vérifier...', 'Source': '...'}" → "Vérifier..."
-   */
   const cleanAiResolution = (resolution: string): string => {
-    const trimmed = resolution.trim();
-    // If it looks like a Python dict / JSON object, extract the Action value
-    if (trimmed.startsWith("{")) {
-      const match = trimmed.match(/['"]Action['"]\s*:\s*['"]([^'"]+)['"]/i);
+    let textToClean = resolution.trim();
+    if (textToClean.startsWith("{")) {
+      const match = textToClean.match(/['"]Action['"]\s*:\s*['"]([^'"]+)['"]/i);
       if (match) {
-        const text = match[1].trim();
-        return text.toLowerCase().startsWith("action") ? text : `Action : ${text}`;
+        textToClean = match[1].trim();
       }
     }
-    const cleaned = trimmed.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
-    return cleaned.toLowerCase().startsWith("action") ? cleaned : `Action : ${cleaned}`;
+    const cleaned = textToClean.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
+    if (!cleaned) return "";
+    // Remove any existing "Action :" prefix then re-add exactly one
+    const stripped = cleaned.replace(/^(action\s*:\s*)+/i, "").trim();
+    return stripped ? `Action : ${stripped}` : "";
   };
 
-  /**
-   * Resolution mapping by REASON_CODE — same as app.py.
-   * Applied only when original comment is vague (not empty).
-   */
   const REASON_CODE_RESOLUTIONS: Record<string, string> = {
     "MTM Difference":
       "Action : Vérifier le fixing Bloomberg J-1 et réconcilier avec le MTM contrepartie.",
@@ -218,32 +227,25 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
       "Action : Vérifier les transferts de titres en attente sur le compte collatéral.",
   };
 
-  /**
-   * Returns the best RECONCILIATION_COMMENT for a row:
-   * 1. AI result from resolvedMap (user explicitly analyzed this dispute) — cleaned
-   * 2. Empty original comment → keep EMPTY (do not fill with fallback text)
-   * 3. Vague/polluted comment (zeineb, new comment, JSON…) → REASON_CODE standard resolution
-   * 4. Valid original comment → keep as-is
-   */
   const resolveComment = (row: CsvRow): string => {
-    // Priority 1 — explicit AI analysis result (clean JSON dict if needed)
+    // Priority 1 — explicit AI result
     const aiEntry = resolvedMap.get(row.SNAPSHOT_ID);
     if (aiEntry) return cleanAiResolution(aiEntry.resolution);
 
     const original = row.RECONCILIATION_COMMENT ?? "";
 
-    // Priority 2 — truly empty → leave blank
-    if (isEmptyComment(original)) return "";
-
-    // Priority 3 — vague/polluted → replace with standard resolution
+    // Priority 2 — zeineb → replace with standard resolution
     if (isVagueComment(original)) {
       const rc = (row.REASON_CODE ?? "").trim();
       return REASON_CODE_RESOLUTIONS[rc] ?? "";
     }
 
-    // Priority 4 — valid comment → always prepend "Action : "
+    // Priority 3 — keep original, add "Action : " prefix only if non-empty
     const cleaned = original.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ").trim();
-    return `Action : ${cleaned}`;
+    if (!cleaned) return "";
+    const stripped = cleaned.replace(/^(action\s*:\s*)+/i, "").trim();
+    if (!stripped) return "";
+    return `Action : ${stripped}`;
   };
 
   /**
@@ -292,9 +294,17 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
       return headers.map((h) => escapeCsv(merged[h] ?? "")).join(";");
     });
 
-    const BOM = "\uFEFF";
-    const csvContent = BOM + headers.join(";") + "\n" + rows.join("\n") + "\n";
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const csvContent = headers.join(";") + "\n" + rows.join("\n") + "\n";
+
+    // Encode as UTF-8 with BOM as raw bytes — ensures Excel reads accents correctly
+    const encoder = new TextEncoder();
+    const utf8Bytes = encoder.encode(csvContent);
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const withBom = new Uint8Array(bom.length + utf8Bytes.length);
+    withBom.set(bom, 0);
+    withBom.set(utf8Bytes, bom.length);
+
+    const blob = new Blob([withBom], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -313,7 +323,7 @@ export function CsvUploader({ onDisputeSelect, onClear, onAllRowsReady, resolved
       date: new Date().toISOString(),
       totalRows: parsed.allRows.length,
       aiResolved: resolvedMap.size,
-      csvContent,
+      csvContent: "\uFEFF" + csvContent,
     };
     localStorage.setItem(historyKey, JSON.stringify([entry, ...existing].slice(0, 50)));
   };

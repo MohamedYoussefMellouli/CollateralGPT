@@ -1,5 +1,6 @@
 import pandas as pd
 import uvicorn
+import re
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -356,7 +357,7 @@ async def seed_knowledge():
             comment_str = str(comment).strip()
             
             # Vérifier si c'est vide, NaN, 'nan' (en string) ou si ça contient un texte générique ou 'zeineb'
-            if pd.isna(comment) or comment_str.lower() in ["nan", "null", "none", ""] or "new comment" in comment_str.lower() or "reconciliation" in comment_str.lower() or "zeineb" in comment_str.lower():
+            if pd.isna(comment) or comment_str.lower() in ["nan", "null", "none", ""] or "new comment" in comment_str.lower() or "reconciliation" in comment_str.lower() or "zeineb" in comment_str.lower() or re.match(r'^reconciliation comment\s*\d*$', comment_str.lower()) or re.match(r'^new comment\s*\d*$', comment_str.lower()):
                 mapping = {
                     "MTM Difference": "Action : Vérifier le fixing Bloomberg J-1 et réconcilier avec le MTM contrepartie.",
                     "IA Difference": "Action : Analyser l'écart d'intérêt (IA) ; comparer les courbes de taux.",
