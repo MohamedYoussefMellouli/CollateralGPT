@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 const PUBLIC_ROUTES = ["/login", "/register"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public routes
@@ -11,11 +11,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check token in cookies (set at login) or skip if not present (client-side check handles it)
-  const token = request.cookies.get("cgpt_token")?.value;
-
   // We rely on client-side redirect for localStorage-based auth
-  // Middleware only handles cookie-based token if present
+  // Proxy only handles cookie-based token if present
   return NextResponse.next();
 }
 

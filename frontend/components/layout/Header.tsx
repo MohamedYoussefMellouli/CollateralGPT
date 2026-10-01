@@ -1,8 +1,9 @@
 "use client";
 
-import { Bell, Search, HelpCircle, Menu, Moon, Sun, Languages, LogOut, User } from "lucide-react";
+import { Bell, Search, HelpCircle, Menu, Moon, Sun, Languages, LogOut, User, ZoomIn, ZoomOut } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { useTranslation } from "@/components/Providers";
+import { useZoom } from "@/hooks/useZoom";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -14,6 +15,7 @@ interface HeaderProps {
 export function Header({ title, subtitle }: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
   const { language, toggleLanguage, t } = useTranslation();
+  const { zoom, zoomIn, zoomOut, resetZoom } = useZoom();
   const router = useRouter();
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userName, setUserName]   = useState<string | null>(null);
@@ -70,6 +72,36 @@ export function Header({ title, subtitle }: HeaderProps) {
             className="bg-transparent text-xs text-slate-300 placeholder-slate-600 outline-none w-full"
             aria-label={t("searchDisputes")}
           />
+        </div>
+
+        {/* Zoom controls */}
+        <div className="hidden sm:flex items-center gap-1 bg-slate-800/60 border border-slate-700/50 rounded-lg px-1 py-1">
+          <button
+            onClick={zoomOut}
+            disabled={zoom <= 50}
+            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Zoom out"
+            title="Zoom −"
+          >
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={resetZoom}
+            className="px-2 py-0.5 rounded text-[11px] font-mono font-semibold text-slate-300 hover:text-white hover:bg-slate-700 transition-colors min-w-[42px] text-center"
+            aria-label="Reset zoom"
+            title="Reset zoom"
+          >
+            {zoom}%
+          </button>
+          <button
+            onClick={zoomIn}
+            disabled={zoom >= 200}
+            className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Zoom in"
+            title="Zoom +"
+          >
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* Language Toggle */}
